@@ -2,15 +2,24 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import os
-from streamlit_option_menu import option_menu
+
+# =========================
+# TENTAR IMPORTAR MENU
+# =========================
+
+try:
+    from streamlit_option_menu import option_menu
+    menu_lib = True
+except:
+    menu_lib = False
 
 st.set_page_config(page_title="Fluxo de Caixa CFO", layout="wide")
 
 ARQUIVO = "fluxo_caixa.xlsx"
 
-# =====================================================
-# CRIAR BASE CASO NÃO EXISTA
-# =====================================================
+# =========================
+# CRIAR BASE SE NÃO EXISTIR
+# =========================
 
 if not os.path.exists(ARQUIVO):
 
@@ -27,9 +36,9 @@ if not os.path.exists(ARQUIVO):
 
     df_base.to_excel(ARQUIVO, index=False)
 
-# =====================================================
+# =========================
 # CARREGAR BASE
-# =====================================================
+# =========================
 
 df = pd.read_excel(ARQUIVO)
 
@@ -54,9 +63,9 @@ df["data_lancamento"] = pd.to_datetime(df["data_lancamento"], errors="coerce")
 df["data_vencimento"] = pd.to_datetime(df["data_vencimento"], errors="coerce")
 df["valor"] = pd.to_numeric(df["valor"], errors="coerce").fillna(0)
 
-# =====================================================
+# =========================
 # ESTRUTURA FINANCEIRA
-# =====================================================
+# =========================
 
 entradas = [
 "Comissões",
@@ -105,21 +114,31 @@ saidas = {
 
 }
 
-# =====================================================
+# =========================
 # MENU
-# =====================================================
+# =========================
 
-menu = option_menu(
-None,
-["Dashboard","Novo Lançamento","Fluxo de Caixa","DRE","Previsão Caixa"],
-orientation="horizontal"
-)
+if menu_lib:
+
+    menu = option_menu(
+        None,
+        ["Dashboard","Novo Lançamento","Fluxo de Caixa","DRE","Previsão Caixa"],
+        orientation="horizontal"
+    )
+
+else:
+
+    menu = st.radio(
+        "Menu",
+        ["Dashboard","Novo Lançamento","Fluxo de Caixa","DRE","Previsão Caixa"],
+        horizontal=True
+    )
 
 st.title("💰 Sistema Inteligente de Fluxo de Caixa")
 
-# =====================================================
+# =========================
 # DASHBOARD
-# =====================================================
+# =========================
 
 if menu == "Dashboard":
 
@@ -146,8 +165,6 @@ if menu == "Dashboard":
         col2.metric("Entradas", f"R$ {receitas:,.2f}")
         col3.metric("Saídas", f"R$ {despesas:,.2f}")
 
-        st.subheader("Despesas por Categoria")
-
         despesas_cat = df[df["tipo"]=="Saída"].groupby("categoria")["valor"].sum().reset_index()
 
         if len(despesas_cat) > 0:
@@ -159,9 +176,9 @@ if menu == "Dashboard":
 
             st.altair_chart(graf, use_container_width=True)
 
-# =====================================================
+# =========================
 # NOVO LANÇAMENTO
-# =====================================================
+# =========================
 
 if menu == "Novo Lançamento":
 
@@ -173,10 +190,6 @@ if menu == "Novo Lançamento":
 
     data_venc = st.date_input("Data vencimento")
 
-    # =========================
-    # ENTRADAS
-    # =========================
-
     if tipo == "Entrada":
 
         categoria = "Entradas"
@@ -185,10 +198,6 @@ if menu == "Novo Lançamento":
         "Subcategoria",
         entradas
         )
-
-    # =========================
-    # SAÍDAS
-    # =========================
 
     if tipo == "Saída":
 
@@ -229,13 +238,11 @@ if menu == "Novo Lançamento":
 
         st.success("Lançamento salvo!")
 
-# =====================================================
+# =========================
 # FLUXO DE CAIXA
-# =====================================================
+# =========================
 
 if menu == "Fluxo de Caixa":
-
-    st.subheader("Fluxo financeiro")
 
     if len(df) == 0:
 
@@ -254,13 +261,11 @@ if menu == "Fluxo de Caixa":
 
         st.dataframe(filtrado, use_container_width=True)
 
-# =====================================================
+# =========================
 # DRE
-# =====================================================
+# =========================
 
 if menu == "DRE":
-
-    st.subheader("Demonstrativo de Resultado")
 
     receitas = df[df["tipo"]=="Entrada"]["valor"].sum()
 
@@ -268,19 +273,19 @@ if menu == "DRE":
 
     resultado = receitas - despesas
 
+    st.subheader("Demonstrativo de Resultado")
+
     st.write("Receitas:", receitas)
 
     st.write("Despesas:", despesas)
 
     st.write("Resultado:", resultado)
 
-# =====================================================
+# =========================
 # PREVISÃO
-# =====================================================
+# =========================
 
 if menu == "Previsão Caixa":
-
-    st.subheader("Previsão de Caixa")
 
     if len(df) > 0:
 
@@ -303,9 +308,9 @@ if menu == "Previsão Caixa":
 
         st.dataframe(previsao)
 
-# =====================================================
+# =========================
 # EXPORTAR
-# =====================================================
+# =========================
 
 st.sidebar.download_button(
 "Baixar Excel",
